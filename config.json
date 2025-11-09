@@ -1,0 +1,27 @@
+{
+  "branding": {
+    "appName": "RAT Tool",
+    "appTagline": "Remote Access Tool",
+    "appVersion": "3.3.3",
+    "logoEmoji": "🖥️",
+    "primaryColor": "#2563eb",
+    "accentColor": "#238636"
+  },
+  "developer": {
+    "name": "Kunal - Rao Sahab",
+    "badge": "K",
+    "country": "India",
+    "countryFlag": "🇮🇳",
+    "website": "",
+    "github": ""
+  },
+  "server": {
+    "port": 8000,
+    "host": "0.0.0.0"
+  },
+  "security": {
+    "sessionTimeout": 86400000,
+    "maxLoginAttempts": 5,
+    "lockoutDuration": 900000
+  }
+}

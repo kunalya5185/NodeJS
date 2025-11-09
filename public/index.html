@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote Windows Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'gh-bg': '#0d1117',
+                        'gh-bg-secondary': '#161b22',
+                        'gh-bg-tertiary': '#21262d',
+                        'gh-border': '#30363d',
+                        'gh-border-muted': '#21262d',
+                        'gh-text': '#f0f6fc',
+                        'gh-text-secondary': '#8b949e',
+                        'gh-text-muted': '#656d76',
+                        'gh-accent': '#238636',
+                        'gh-accent-emphasis': '#2ea043',
+                        'gh-danger': '#da3633',
+                        'gh-warning': '#d29922',
+                        'gh-info': '#1f6feb'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Smooth animations and transitions */
+        * {
+            transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+        }
+
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card-hover:hover {
+            border-color: #656d76;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        button {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            transform: scale(1.01);
+        }
+
+        /* Fade in animation */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        /* Pulse animation */
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        .github-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .github-scrollbar::-webkit-scrollbar-track {
+            background: #21262d;
+        }
+
+        .github-scrollbar::-webkit-scrollbar-thumb {
+            background: #656d76;
+            border-radius: 4px;
+        }
+
+        .github-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #8b949e;
+        }
+
+        /* Smooth modal transitions */
+        .modal-enter {
+            animation: modalEnter 0.3s ease-out;
+        }
+
+        @keyframes modalEnter {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gh-bg min-h-screen">
+    <!-- Navigation Bar -->\n <nav class="bg-gh-bg-secondary border-b border-gh-border">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-3">
+                    <div
+                        class="w-10 h-10 bg-gh-bg-tertiary rounded-lg flex items-center justify-center border border-gh-border">
+                        <span class="text-2xl">🖥️</span>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gh-text">Remote Windows Manager</h1>
+                        <p class="text-gh-text-secondary text-sm">Manage Windows machines remotely</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-3 h-3 bg-gh-accent-emphasis rounded-full"></div>
+                        <span class="text-gh-text-secondary text-sm">Server Online</span>
+                    </div>
+                    <a href="/messages"
+                        class="flex items-center space-x-2 bg-purple-900 hover:bg-purple-800 text-purple-200 font-semibold py-2 px-4 rounded-lg transition-colors duration-200 border border-purple-700">
+                        <span>📬</span>
+                        <span>Messages</span>
+                    </a>
+                    <button onclick="logout()"
+                        class="flex items-center space-x-2 bg-red-900 hover:bg-red-800 text-red-200 font-semibold py-2 px-4 rounded-lg transition-colors duration-200 border border-red-700">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1">
+                            </path>
+                        </svg>
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content (hidden by default for authentication) -->
+    <div id="mainContent" class="hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Statistics Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-gh-bg-secondary rounded-lg p-6 border border-gh-border card-hover">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gh-text-secondary text-sm font-medium">Total Clients</p>
+                            <p id="totalClients" class="text-3xl font-bold text-gh-text mt-1">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-900 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                                </path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gh-bg-secondary rounded-lg p-6 border border-gh-border card-hover">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gh-text-secondary text-sm font-medium">Online</p>
+                            <p id="onlineClients" class="text-3xl font-bold text-green-300 mt-1">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-green-900 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7">
+                                </path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gh-bg-secondary rounded-lg p-6 border border-gh-border card-hover">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gh-text-secondary text-sm font-medium">Offline</p>
+                            <p id="offlineClients" class="text-3xl font-bold text-red-300 mt-1">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-red-900 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Other Tools Section -->
+            <div class="bg-gh-bg-secondary rounded-lg p-6 border border-gh-border mb-8">
+                <div class="flex items-center space-x-3 mb-6">
+                    <div
+                        class="w-10 h-10 bg-gradient-to-br from-indigo-900 to-purple-900 rounded-lg flex items-center justify-center">
+                        <span class="text-xl">🛠️</span>
+                    </div>
+                    <h2 class="text-xl font-bold text-gh-text">Other Tools</h2>
+                </div>
+
+                <!-- Main Tool Selection Tabs -->
+                <div class="flex space-x-2 mb-6 flex-wrap gap-y-2">
+                    <button id="audioMainTabBtn" onclick="switchOtherMainTab('audio')"
+                        class="flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-colors duration-200 bg-indigo-600 text-white">
+                        🔊 Audio
+                    </button>
+                    <button id="vbsMainTabBtn" onclick="switchOtherMainTab('vbs')"
+                        class="flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-colors duration-200 bg-gh-bg-tertiary text-gh-text-secondary hover:bg-gh-border">
+                        🗃️ VBS Scripts
+                    </button>
+                    <button id="videoMainTabBtn" onclick="switchOtherMainTab('video')"
+                        class="flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-colors duration-200 bg-gh-bg-tertiary text-gh-text-secondary hover:bg-gh-border">
+                        🎬 Video
+                    </button>
+                    <button id="filesMainTabBtn" onclick="switchOtherMainTab('files')"
+                        class="flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-colors duration-200 bg-gh-bg-tertiary text-gh-text-secondary hover:bg-gh-border">
+                        📁 Files
+                    </button>
+                    <button id="photosMainTabBtn" onclick="switchOtherMainTab('photos')"
+                        class="flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-colors duration-200 bg-gh-bg-tertiary text-gh-text-secondary hover:bg-gh-border">
+                        📷 Photos
+                    </button>
+                    <button id="clientIdsMainTabBtn" onclick="switchOtherMainTab('clientIds')"
+                        class="flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-colors duration-200 bg-gh-bg-tertiary text-gh-text-secondary hover:bg-gh-border">
+                        🆔 Client IDs
+                    </button>
+                    <button id="blocklistMainTabBtn" onclick="switchOtherMainTab('blocklist')"
+                        class="flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-colors duration-200 bg-gh-bg-tertiary text-gh-text-secondary hover:bg-gh-border">
+                        🚫 Blocklist
+                    </button>
+                </div>
+
+                <!-- Audio Content -->
+                <div id="audioMainContent">
+                    <div class="space-y-4">
+                        <!-- Upload New File Tab -->
+                        <div class="flex space-x-2 mb-4">
+                            <button id="uploadTabBtn" onclick="switchAudioTab('upload')"
+                                class="flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-colors duration-200 bg-indigo-600 text-white">
+                                Upload New
+                            </button>
+                            <button id="libraryTabBtn" onclick="switchAudioTab('library')"
+                                class="flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-colors duration-200 bg-gh-bg-tertiary text-gh-text-secondary hover:bg-gh-border">
+                                Audio Library
+                            </button>
+                            <button id="audioDumpTabBtn" onclick="switchAudioTab('dump')"
+                                class="flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-colors duration-200 bg-gh-bg-tertiary text-gh-text-secondary hover:bg-gh-border">
+                                Dump to C:\audios
+                            </button>
+                        </div>
+
+                        <!-- Upload Tab Content -->
+                        <div id="uploadTabContent">
+                            <div class="flex flex-col space-y-2">
+                                <label class="text-gh-text-secondary text-sm font-medium">Select .wav file</label>
+                                <input type="file" id="audioFileInput" accept=".wav,audio/wav"
+                                    class="block w-full text-sm text-gh-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-900 file:text-indigo-200 hover:file:bg-indigo-800 file:cursor-pointer cursor-pointer bg-gh-bg-tertiary border border-gh-border rounded-lg">
+                            </div>
+
+                            <div class="flex flex-col space-y-2 mt-4">
+                                <label class="text-gh-text-secondary text-sm font-medium">Select target client</label>
+                                <select id="audioClientSelect"
+                                    class="w-full bg-gh-bg-tertiary border border-gh-border rounded-lg px-4 py-3 text-gh-text focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                    <option value="">-- Select a client --</option>
+                                </select>
+                            </div>
+
+                            <button id="playAudioBtn" onclick="playAudioOnClient()"
+                                class="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <span class="flex items-center justify-center space-x-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z">
+                                        </path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span>Upload & Play</span>
+                                </span>
+                            </button>
+                        </div>
+
+                        <!-- Library Tab Content -->
+                        <div id="libraryTabContent" class="hidden">
+                            <div class="flex flex-col space-y-2 mb-4">
+                                <label class="text-gh-text-secondary text-sm font-medium">Select target client</label>
+                                <select id="audioClientSelectLibrary"
+                                    class="w-full bg-gh-bg-tertiary border border-gh-border rounded-lg px-4 py-3 text-gh-text focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                    <option value="">-- Select a client --</option>
+                                </select>
+                            </div>
+
+                            <div class="bg-gh-bg rounded-lg p-4 max-h-96 overflow-y-auto github-scrollbar">
+                                <div id="audioLibraryList" class="space-y-2">
+                                    <p class="text-gh-text-secondary text-sm text-center py-4">Loading audio files...
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dump Tab Content -->
+                        <div id="audioDumpTabContent" class="hidden">
+                            <div class="bg-yellow-900/20 border border-yellow-700 rounded-lg p-4 mb-4">
+                                <div class="flex items-start space-x-3">
+                                    <svg class="w-5 h-5 text-yellow-500 mt-0.5" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                                        </path>
+                                    </svg>
+                                    <div>
+                                        <p class="text-yellow-300 text-sm font-semibold">Audio File Dump</p>
+                                        <p class="text-yellow-200 text-xs mt-1">Upload audio files to C:\audios without
+                                            playing them.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col space-y-2">
+                                <label class="text-gh-text-secondary text-sm font-medium">Select .wav file(s)</label>
+                                <input type="file" id="audioDumpFileInput" accept=".wav,audio/wav" multiple
+                                    class="block w-full text-sm text-gh-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-yellow-900 file:text-yellow-200 hover:file:bg-yellow-800 file:cursor-pointer cursor-pointer bg-gh-bg-tertiary border border-gh-border rounded-lg">
+                            </div>
+
+                            <div class="flex flex-col space-y-2 mt-4">
+                                <label class="text-gh-text-secondary text-sm font-medium">Select target client</label>
+                                <select id="audioDumpClientSelect"
+                                    class="w-full bg-gh-bg-tertiary border border-gh-border rounded-lg px-4 py-3 text-gh-text focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent">
+                                    <option value="">-- Select a client --</option>
+                                </select>
+                            </div>
+
+                            <button id="audioDumpBtn" onclick="dumpAudioFiles()"
+                                class="w-full mt-4 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                                <span class="flex items-center justify-center space-x-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                                        </path>
+                                    </svg>
+                                    <span>Dump to C:\audios</span>
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VBS Content -->
+                <div id="vbsMainContent" class="hidden">
+                    <div class="space-y-4">
+                        <!-- VBS Tab Buttons -->
+                        <div class="flex space-x-2 mb-4">
+                            <button id="vbsUploadTabBtn" onclick="switchVbsTab('upload')"
+                                class="flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-colors duration-200 bg-teal-600 text-white">
+                                Upload New
+                            </button>
+                            <button id="vbsLibraryTabBtn" onclick="switchVbsTab('library')"
+                                class="flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-colors duration-200 bg-gh-bg-tertiary text-gh-text-secondary hover:bg-gh-border">
+                                Script Library
+                            </button>
+                            <button id="vbsDumpTabBtn" onclick="switchVbsTab('dump')"
+                                class="flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-colors duration-200 bg-gh-bg-tertiary text-gh-text-secondary hover:bg-gh-border">
+                                Dump to C:\scripts
+                            </button>
+                        </div>
+
+                        <!-- VBS Upload Tab Content -->
+                        <div id="vbsUploadTabContent">
+                            <div class="flex flex-col space-y-2">
+                                <label class="text-gh-text-secondary text-sm font-medium">Select .vbs file</label>
+                                <input type="file" id="vbsFileInput" accept=".vbs"
+                                    class="block w-full text-sm text-gh-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-900 file:text-teal-200 hover:file:bg-teal-800 file:cursor-pointer cursor-pointer bg-gh-bg-tertiary border border-gh-border rounded-lg">
+                            </div>
+
+                            <div class="flex flex-col space-y-2 mt-4">
+                                <label class="text-gh-text-secondary text-sm font-medium">Select target client</label>
+                                <select id="vbsClientSelect"
+                                    class="w-full bg-gh-bg-tertiary border border-gh-border rounded-lg px-4 py-3 text-gh-text focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent">
+                                    <option value="">-- Select a client --</option>
+                                </select>
+                            </div>
+
+                            <button id="executeVbsBtn" onclick="executeVbsOnClient()"
+                                class="w-full mt-4 bg-teal-600 hover:bg-teal-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                <span class="flex items-center justify-center space-x-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                    </svg>
+                                    <span>Upload & Execute</span>
+                                </span>
+                            </button>
+                        </div>
+
+                        <!-- VBS Library Tab Content -->
+                        <div id="vbsLibraryTabContent" class="hidden">
+                            <div class="flex flex-col space-y-2 mb-4">
+                                <label class="text-gh-text-secondary text-sm font-medium">Select target client</label>
+                                <select id="vbsClientSelectLibrary"
+                                    class="w-full bg-gh-bg-tertiary border border-gh-border rounded-lg px-4 py-3 text-gh-text focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent">
+                                    <option value="">-- Select a client --</option>
+                                </select>
+                            </div>
+
+                            <div class="bg-gh-bg rounded-lg p-4 max-h-96 overflow-y-auto github-scrollbar">
+                                <div id="vbsLibraryList" class="space-y-2">
+                                    <p class="text-gh-text-secondary text-sm text-center py-4">Loading VBS scripts...
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- VBS Dump Tab Content -->
+                        <div id="vbsDumpTabContent" class="hidden">
+                            <div class="bg-yellow-900/20 border border-yellow-700 rounded-lg p-4 mb-4">
+                                <div class="flex items-start space-x-3">
+                                    <svg class="w-5 h-5 text-yellow-500 mt-0.5" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                                        </path>
+                                    </svg>
+                                    <div>
+                                        <p class="text-yellow-300 text-sm font-semibold">VBS Script Dump</p>
+                                        <p class="text-yellow-200 text-xs mt-1">Upload VBS scripts to C:\scripts without
+                                            executing.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex flex-col space-y-2">
+                                <label class="text-gh-text-secondary text-sm font-medium">Select .vbs file(s)</label>
+                                <input type="file" id="vbsDumpFileInput" accept=".vbs" multiple
+                                    class="block w-full text-sm text-gh-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-yellow-900 file:text-yellow-200 hover:file:bg-yellow-800 file:cursor-pointer cursor-pointer bg-gh-bg-tertiary border border-gh-border rounded-lg">
+                            </div>
+                            <div class="flex flex-col space-y-2 mt-4">
+                                <label class="text-gh-text-secondary text-sm font-medium">Select target client</label>
+                                <select id="vbsDumpClientSelect"
+                                    class="w-full bg-gh-bg-tertiary border border-gh-border rounded-lg px-4 py-3 text-gh-text focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent">
+                                    <option value="">-- Select a client --</option>
+                                </select>
+                            </div>
+                            <button id="vbsDumpBtn" onclick="dumpVbsFiles()"
+                                class="w-full mt-4 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                                <span class="flex items-center justify-center space-x-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                                        </path>
+                                    </svg>
+                                    <span>Dump to C:\scripts</span>
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video Content -->
+                <div id="videoMainContent" class="hidden">
+                    <div class="space-y-4">
+                        <!-- Upload New Video Tab -->
+                        <div class="flex space-x-2 mb-4">
+                            <button id="videoUploadTabBtn" onclick="switchVideoTab('upload')"
+                                class="flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-colors duration-200 bg-purple-600 text-white">
+                                Upload New
+                            </button>
+                            <button id="videoLibraryTabBtn" onclick="switchVideoTab('library')"
+                                class="flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-colors duration-200 bg-gh-bg-tertiary text-gh-text-secondary hover:bg-gh-border">
+                                Video Library
+                            </button>
+                            <button id="videoDumpTabBtn" onclick="switchVideoTab('dump')"
+                                class="flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-colors duration-200 bg-gh-bg-tertiary text-gh-text-secondary hover:bg-gh-border">
+                                Dump to C:\videos
+                            </button>
+                        </div>
+
+                        <!-- Upload Tab Content -->
+                        <div id="videoUploadTabContent">
+                            <div class="flex flex-col space-y-2">
+                                <label class="text-gh-text-secondary text-sm font-medium">Select video file (.mp4, .avi,
+                                    .mkv, .webm)</label>
+                                <input type="file" id="videoFileInput"
+                                    accept=".mp4,.avi,.mkv,.webm,video/mp4,video/x-msvideo,video/x-matroska,video/webm"
+                                    class="block w-full text-sm text-gh-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-900 file:text-purple-200 hover:file:bg-purple-800 file:cursor-pointer cursor-pointer bg-gh-bg-tertiary border border-gh-border rounded-lg">
+                            </div>
+
+                            <div class="flex flex-col space-y-2 mt-4">
+                                <label class="text-gh-text-secondary text-sm font-medium">Select target client</label>
+                                <select id="videoClientSelect"
+                                    class="w-full bg-gh-bg-tertiary border border-gh-border rounded-lg px-4 py-3 text-gh-text focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                    <option value="">-- Select a client --</option>
+                                </select>
+                            </div>
+
+                            <button id="playVideoBtn" onclick="playVideoOnClient()"
+                                class="w-full mt-4 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                <span class="flex items-center justify-center space-x-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z">
+                                        </path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span>Upload & Play</span>
+                                </span>
+                            </button>
+                        </div>
+
+                        <!-- Library Tab Content -->
+                        <div id="videoLibraryTabContent" class="hidden">
+                            <div class="flex flex-col space-y-2 mb-4">
+                                <label class="text-gh-text-secondary text-sm font-medium">Select target client</label>
+                                <select id="videoClientSelectLibrary"
+                                    class="w-full bg-gh-bg-tertiary border border-gh-border rounded-lg px-4 py-3 text-gh-text focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                    <option value="">-- Select a client --</option>
+                                </select>
+                            </div>
+
+                            <div class="bg-gh-bg rounded-lg p-4 max-h-96 overflow-y-auto github-scrollbar">
+                                <div id="videoLibraryList" class="space-y-2">
+                                    <p class="text-gh-text-secondary text-sm text-center py-4">Loading video files...
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Video Dump Tab Content -->
+                        <div id="videoDumpTabContent" class="hidden">
+                            <div class="bg-yellow-900/20 border border-yellow-700 rounded-lg p-4 mb-4">
+                                <div class="flex items-start space-x-3">
+                                    <svg class="w-5 h-5 text-yellow-500 mt-0.5" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                                        </path>
+                                    </svg>
+                                    <div>
+                                        <p class="text-yellow-300 text-sm font-semibold">Video File Dump</p>
+                                        <p class="text-yellow-200 text-xs mt-1">Upload video files to C:\videos without
+                                            playing them.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex flex-col space-y-2">
+                                <label class="text-gh-text-secondary text-sm font-medium">Select video file(s)</label>
+                                <input type="file" id="videoDumpFileInput" accept=".mp4,.avi,.mkv,.webm" multiple
+                                    class="block w-full text-sm text-gh-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-yellow-900 file:text-yellow-200 hover:file:bg-yellow-800 file:cursor-pointer cursor-pointer bg-gh-bg-tertiary border border-gh-border rounded-lg">
+                            </div>
+                            <div class="flex flex-col space-y-2 mt-4">
+                                <label class="text-gh-text-secondary text-sm font-medium">Select target client</label>
+                                <select id="videoDumpClientSelect"
+                                    class="w-full bg-gh-bg-tertiary border border-gh-border rounded-lg px-4 py-3 text-gh-text focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent">
+                                    <option value="">-- Select a client --</option>
+                                </select>
+                            </div>
+                            <button id="videoDumpBtn" onclick="dumpVideoFiles()"
+                                class="w-full mt-4 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                                <span class="flex items-center justify-center space-x-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                                        </path>
+                                    </svg>
+                                    <span>Dump to C:\videos</span>
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Files Content -->
+                <div id="filesMainContent" class="hidden">
+                    <div class="space-y-4">
+                        <!-- Upload New File Tab -->
+                        <div class="flex space-x-2 mb-4">
+                            <button id="filesUploadTabBtn" onclick="switchFilesTab('upload')"
+                                class="flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-colors duration-200 bg-orange-600 text-white">
+                                Upload New
+                            </button>
+                            <button id="filesLibraryTabBtn" onclick="switchFilesTab('library')"
+                                class="flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-colors duration-200 bg-gh-bg-tertiary text-gh-text-secondary hover:bg-gh-border">
+                                Files Library
+                            </button>
+                            <button id="filesDumpTabBtn" onclick="switchFilesTab('dump')"
+                                class="flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-colors duration-200 bg-gh-bg-tertiary text-gh-text-secondary hover:bg-gh-border">
+                                Dump to C:\files
+                            </button>
+                        </div>
+
+                        <!-- Upload Tab Content -->
+                        <div id="filesUploadTabContent">
+                            <div class="flex flex-col space-y-2">
+                                <label class="text-gh-text-secondary text-sm font-medium">Select file (.exe, .bat, .ps1,
+                                    .cmd, .reg, etc.)</label>
+                                <input type="file" id="generalFileInput"
+                                    class="block w-full text-sm text-gh-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-900 file:text-orange-200 hover:file:bg-orange-800 file:cursor-pointer cursor-pointer bg-gh-bg-tertiary border border-gh-border rounded-lg">
+                            </div>
+
+                            <div class="flex flex-col space-y-2 mt-4">
+                                <label class="text-gh-text-secondary text-sm font-medium">Select target client</label>
+                                <select id="filesClientSelect"
+                                    class="w-full bg-gh-bg-tertiary border border-gh-border rounded-lg px-4 py-3 text-gh-text focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                                    <option value="">-- Select a client --</option>
+                                </select>
+                            </div>
+
+                            <button id="executeFileBtn" onclick="executeFileOnClient()"
+                                class="w-full mt-4 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                                <span class="flex items-center justify-center space-x-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                    </svg>
+                                    <span>Upload & Execute</span>
+                                </span>
+                            </button>
+                        </div>
+
+                        <!-- Library Tab Content -->
+                        <div id="filesLibraryTabContent" class="hidden">
+                            <div class="flex flex-col space-y-2 mb-4">
+                                <label class="text-gh-text-secondary text-sm font-medium">Select target client</label>
+                                <select id="filesClientSelectLibrary"
+                                    class="w-full bg-gh-bg-tertiary border border-gh-border rounded-lg px-4 py-3 text-gh-text focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                                    <option value="">-- Select a client --</option>
+                                </select>
+                            </div>
+
+                            <div class="bg-gh-bg rounded-lg p-4 max-h-96 overflow-y-auto github-scrollbar">
+                                <div id="filesLibraryList" class="space-y-2">
+                                    <p class="text-gh-text-secondary text-sm text-center py-4">Loading files...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dump Tab Content -->
+                        <div id="filesDumpTabContent" class="hidden">
+                            <div class="bg-yellow-900/20 border border-yellow-700 rounded-lg p-4 mb-4">
+                                <div class="flex items-start space-x-3">
+                                    <svg class="w-5 h-5 text-yellow-500 mt-0.5" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                                        </path>
+                                    </svg>
+                                    <div>
+                                        <p class="text-yellow-300 text-sm font-semibold">File Dump Feature</p>
+                                        <p class="text-yellow-200 text-xs mt-1">Upload files to C:\files without
+                                            executing them.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col space-y-2">
+                                <label class="text-gh-text-secondary text-sm font-medium">Select file(s) to dump</label>
+                                <input type="file" id="dumpFileInput" multiple
+                                    class="block w-full text-sm text-gh-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-yellow-900 file:text-yellow-200 hover:file:bg-yellow-800 file:cursor-pointer cursor-pointer bg-gh-bg-tertiary border border-gh-border rounded-lg">
+                            </div>
+
+                            <div class="flex flex-col space-y-2 mt-4">
+                                <label class="text-gh-text-secondary text-sm font-medium">Select target client</label>
+                                <select id="dumpClientSelect"
+                                    class="w-full bg-gh-bg-tertiary border border-gh-border rounded-lg px-4 py-3 text-gh-text focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent">
+                                    <option value="">-- Select a client --</option>
+                                </select>
+                            </div>
+
+                            <button id="dumpFilesBtn" onclick="dumpFilesToClient()"
+                                class="w-full mt-4 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                                <span class="flex items-center justify-center space-x-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                                        </path>
+                                    </svg>
+                                    <span>Dump to C:\files</span>
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Photos Content -->
+                <div id="photosMainContent" class="hidden">
+                    <div class="space-y-4">
+                        <!-- Photos Tab Buttons -->
+                        <div class="flex space-x-2 mb-4">
+                            <button id="photosUploadTabBtn" onclick="switchPhotosTab('upload')"
+                                class="flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-colors duration-200 bg-pink-600 text-white">
+                                Upload New
+                            </button>
+                            <button id="photosLibraryTabBtn" onclick="switchPhotosTab('library')"
+                                class="flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-colors duration-200 bg-gh-bg-tertiary text-gh-text-secondary hover:bg-gh-border">
+                                Photo Library
+                            </button>
+                            <button id="photosDumpTabBtn" onclick="switchPhotosTab('dump')"
+                                class="flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-colors duration-200 bg-gh-bg-tertiary text-gh-text-secondary hover:bg-gh-border">
+                                Dump to C:\photos
+                            </button>
+                        </div>
+
+                        <!-- Photos Upload Tab Content -->
+                        <div id="photosUploadTabContent">
+                            <div class="flex flex-col space-y-2">
+                                <label class="text-gh-text-secondary text-sm font-medium">Select photo (.jpg, .png,
+                                    .gif, etc.)</label>
+                                <input type="file" id="photoFileInput" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,image/*"
+                                    class="block w-full text-sm text-gh-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-pink-900 file:text-pink-200 hover:file:bg-pink-800 file:cursor-pointer cursor-pointer bg-gh-bg-tertiary border border-gh-border rounded-lg">
+                            </div>
+
+                            <div class="flex flex-col space-y-2 mt-4">
+                                <label class="text-gh-text-secondary text-sm font-medium">Select target client</label>
+                                <select id="photosClientSelect"
+                                    class="w-full bg-gh-bg-tertiary border border-gh-border rounded-lg px-4 py-3 text-gh-text focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                                    <option value="">-- Select a client --</option>
+                                </select>
+                            </div>
+
+                            <button id="playPhotoBtn" onclick="playPhotoOnClient()"
+                                class="w-full mt-4 bg-pink-600 hover:bg-pink-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-pink-500">
+                                <span class="flex items-center justify-center space-x-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z">
+                                        </path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span>Upload & Display</span>
+                                </span>
+                            </button>
+                        </div>
+
+                        <!-- Photos Library Tab Content -->
+                        <div id="photosLibraryTabContent" class="hidden">
+                            <div class="flex flex-col space-y-2 mb-4">
+                                <label class="text-gh-text-secondary text-sm font-medium">Select target client</label>
+                                <select id="photosClientSelectLibrary"
+                                    class="w-full bg-gh-bg-tertiary border border-gh-border rounded-lg px-4 py-3 text-gh-text focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                                    <option value="">-- Select a client --</option>
+                                </select>
+                            </div>
+
+                            <div class="bg-gh-bg rounded-lg p-4 max-h-96 overflow-y-auto github-scrollbar">
+                                <div id="photosLibraryList" class="space-y-2">
+                                    <p class="text-gh-text-secondary text-sm text-center py-4">Loading photos...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Photos Dump Tab Content -->
+                        <div id="photosDumpTabContent" class="hidden">
+                            <div class="bg-yellow-900/20 border border-yellow-700 rounded-lg p-4 mb-4">
+                                <div class="flex items-start space-x-3">
+                                    <svg class="w-5 h-5 text-yellow-500 mt-0.5" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                                        </path>
+                                    </svg>
+                                    <div>
+                                        <p class="text-yellow-300 text-sm font-semibold">Photo Dump Feature</p>
+                                        <p class="text-yellow-200 text-xs mt-1">Upload photos to C:\photos without
+                                            displaying them.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex flex-col space-y-2">
+                                <label class="text-gh-text-secondary text-sm font-medium">Select photo(s)</label>
+                                <input type="file" id="photosDumpFileInput"
+                                    accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,image/*" multiple
+                                    class="block w-full text-sm text-gh-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-yellow-900 file:text-yellow-200 hover:file:bg-yellow-800 file:cursor-pointer cursor-pointer bg-gh-bg-tertiary border border-gh-border rounded-lg">
+                            </div>
+                            <div class="flex flex-col space-y-2 mt-4">
+                                <label class="text-gh-text-secondary text-sm font-medium">Select target client</label>
+                                <select id="photosDumpClientSelect"
+                                    class="w-full bg-gh-bg-tertiary border border-gh-border rounded-lg px-4 py-3 text-gh-text focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent">
+                                    <option value="">-- Select a client --</option>
+                                </select>
+                            </div>
+                            <button id="photosDumpBtn" onclick="dumpPhotoFiles()"
+                                class="w-full mt-4 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                                <span class="flex items-center justify-center space-x-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                                        </path>
+                                    </svg>
+                                    <span>Dump to C:\photos</span>
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Client IDs Content -->
+                <div id="clientIdsMainContent" class="hidden">
+                    <div class="space-y-4">
+                        <div class="bg-blue-900/20 border border-blue-700 rounded-lg p-4 mb-4">
+                            <div class="flex items-start space-x-3">
+                                <svg class="w-5 h-5 text-blue-500 mt-0.5" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <div>
+                                    <p class="text-blue-300 text-sm font-semibold">Connected Clients Information</p>
+                                    <p class="text-blue-200 text-xs mt-1">View all connected clients with their unique
+                                        IDs, hostnames, and connection status.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gh-bg rounded-lg p-4 max-h-[600px] overflow-y-auto github-scrollbar">
+                            <div id="clientIdsTable" class="space-y-2">
+                                <p class="text-gh-text-secondary text-sm text-center py-4">No clients connected</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Blocklist Content -->
+                <div id="blocklistMainContent" class="hidden">
+                    <div class="space-y-4">
+                        <div class="bg-red-900/20 border border-red-700 rounded-lg p-4 mb-4">
+                            <div class="flex items-start space-x-3">
+                                <svg class="w-5 h-5 text-red-500 mt-0.5" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                                </svg>
+                                <div>
+                                    <p class="text-red-300 text-sm font-semibold">Client Blocklist Management</p>
+                                    <p class="text-red-200 text-xs mt-1">Block clients by their computer name. Blocked clients cannot connect to the server.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Add to Blocklist Form -->
+                        <div class="bg-gh-bg-tertiary rounded-lg p-4 border border-gh-border">
+                            <h3 class="text-gh-text font-semibold mb-3">Add to Blocklist</h3>
+                            <div class="flex space-x-3">
+                                <input type="text" id="blocklistHostnameInput" placeholder="Enter computer name"
+                                    class="flex-1 bg-gh-bg border border-gh-border rounded-lg px-4 py-2 text-gh-text placeholder-gh-text-muted focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent">
+                                <button onclick="addToBlocklist()"
+                                    class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors duration-200">
+                                    <span class="flex items-center space-x-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                        </svg>
+                                        <span>Block</span>
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Blocklist Table -->
+                        <div class="bg-gh-bg rounded-lg p-4 max-h-[500px] overflow-y-auto github-scrollbar">
+                            <h3 class="text-gh-text font-semibold mb-3">Blocked Clients</h3>
+                            <div id="blocklistTable" class="space-y-2">
+                                <p class="text-gh-text-secondary text-sm text-center py-4">Loading blocklist...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Logs (Moved to top for better visibility) -->
+            <div class="bg-gh-bg-secondary rounded-lg p-6 border border-gh-border mb-8">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-green-900 rounded-lg flex items-center justify-center">
+                            <span class="text-xl">📋</span>
+                        </div>
+                        <h2 class="text-xl font-bold text-gh-text">Activity Logs</h2>
+                    </div>
+                    <button onclick="clearLogs()"
+                        class="bg-gh-bg-tertiary hover:bg-gh-border text-gh-text-secondary hover:text-gh-text font-semibold py-2 px-4 rounded-lg transition-colors duration-200 border border-gh-border text-sm">
+                        <span class="flex items-center space-x-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                </path>
+                            </svg>
+                            <span>Clear Logs</span>
+                        </span>
+                    </button>
+                </div>
+
+                <div id="logs"
+                    class="bg-gh-bg rounded-lg p-4 h-64 overflow-y-auto border border-gh-border github-scrollbar">
+                    <p class="log-entry text-green-300 font-mono text-sm">[System] Server started - Waiting for client
+                        connections...</p>
+                </div>
+            </div>
+
+            <!-- Clients Section -->
+            <div class="bg-gh-bg-secondary rounded-lg p-6 border border-gh-border mb-8">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+                    <div class="flex items-center space-x-3 mb-4 sm:mb-0">
+                        <div class="w-10 h-10 bg-blue-900 rounded-lg flex items-center justify-center">
+                            <span class="text-xl">💻</span>
+                        </div>
+                        <h2 class="text-xl font-bold text-gh-text">Connected Clients</h2>
+                    </div>
+
+                    <button id="clearOfflineBtn"
+                        class="bg-red-900 hover:bg-red-800 text-red-200 font-semibold py-2 px-4 rounded-lg transition-colors duration-200 border border-red-700">
+                        <span class="flex items-center space-x-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                </path>
+                            </svg>
+                            <span>Clear Offline</span>
+                        </span>
+                    </button>
+                </div>
+
+                <div id="clientsList" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <div class="col-span-full flex flex-col items-center justify-center py-12 text-center">
+                        <div class="w-16 h-16 bg-gh-bg-tertiary rounded-lg flex items-center justify-center mb-4">
+                            <svg class="w-8 h-8 text-gh-text-secondary" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                                </path>
+                            </svg>
+                        </div>
+                        <p class="text-gh-text-secondary text-lg">No clients connected</p>
+                        <p class="text-gh-text-muted text-sm mt-2">Install and run the Windows client on your target
+                            machines</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- CMD Terminal Modal -->
+        <div id="cmdModal" class="fixed inset-0 bg-black/80 hidden z-50">
+            <div class="flex items-center justify-center min-h-screen p-4">
+                <div
+                    class="bg-gh-bg-secondary border border-gh-border rounded-lg w-full max-w-4xl max-h-[80vh] flex flex-col">
+                    <!-- Modal Header -->
+                    <div class="flex items-center justify-between p-6 border-b border-gh-border">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-green-900 rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-green-300" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                    </path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-gh-text">Remote CMD Terminal</h3>
+                                <p id="cmdClientName" class="text-gh-text-secondary text-sm">Client: Unknown</p>
+                            </div>
+                        </div>
+                        <button onclick="closeCmdModal()"
+                            class="text-gh-text-secondary hover:text-gh-text transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Terminal Output -->
+                    <div class="flex-1 p-6 overflow-hidden">
+                        <div id="cmdOutput"
+                            class="bg-black rounded-lg p-4 h-96 overflow-y-auto font-mono text-sm text-green-300 github-scrollbar">
+                            <div class="text-gh-text-secondary">Remote CMD Terminal - Ready</div>
+                            <div class="text-gh-text-secondary">Type commands and press Enter to execute on remote
+                                machine</div>
+                            <div class="text-gh-text-secondary">---</div>
+                        </div>
+                    </div>
+
+                    <!-- Command Input -->
+                    <div class="p-6 border-t border-gh-border">
+                        <div class="flex space-x-3">
+                            <div class="flex-1 relative">
+                                <input id="cmdInput" type="text"
+                                    placeholder="Enter command (e.g., dir, ipconfig, tasklist)..."
+                                    class="w-full bg-gh-bg-tertiary border border-gh-border rounded-lg px-4 py-3 text-gh-text placeholder-gh-text-muted focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent font-mono"
+                                    onkeypress="handleCmdKeyPress(event)">
+                            </div>
+                            <button onclick="executeCmdCommand()"
+                                class="bg-green-700 hover:bg-green-600 text-green-100 font-semibold py-3 px-6 rounded-lg transition-colors duration-200 border border-green-600">
+                                Execute
+                            </button>
+                            <button onclick="clearCmdOutput()"
+                                class="bg-gh-bg-tertiary hover:bg-gh-border text-gh-text-secondary hover:text-gh-text font-semibold py-3 px-6 rounded-lg transition-colors duration-200 border border-gh-border">
+                                Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Info Modal -->
+        <div id="systemInfoModal" class="fixed inset-0 bg-black/80 hidden z-50">
+            <div class="flex items-center justify-center min-h-screen p-4">
+                <div
+                    class="bg-gh-bg-secondary border border-gh-border rounded-lg w-full max-w-4xl max-h-[80vh] flex flex-col">
+                    <!-- Modal Header -->
+                    <div class="flex items-center justify-between p-6 border-b border-gh-border">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-blue-900 rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-blue-300" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-gh-text">System Information</h3>
+                                <p id="systemInfoClientName" class="text-gh-text-secondary text-sm">Client: Unknown</p>
+                            </div>
+                        </div>
+                        <button onclick="closeSystemInfoModal()"
+                            class="text-gh-text-secondary hover:text-gh-text transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- System Info Content -->
+                    <div class="flex-1 p-6 overflow-y-auto github-scrollbar">
+                        <div id="systemInfoContent" class="space-y-4">
+                            <div class="text-gh-text-secondary">Loading system information...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Process List Modal -->
+        <div id="processModal" class="fixed inset-0 bg-black/80 hidden z-50">
+            <div class="flex items-center justify-center min-h-screen p-4">
+                <div
+                    class="bg-gh-bg-secondary border border-gh-border rounded-lg w-full max-w-6xl max-h-[80vh] flex flex-col">
+                    <!-- Modal Header -->
+                    <div class="flex items-center justify-between p-6 border-b border-gh-border">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-orange-900 rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-orange-300" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                                    </path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-gh-text">Running Processes</h3>
+                                <p id="processClientName" class="text-gh-text-secondary text-sm">Client: Unknown</p>
+                            </div>
+                        </div>
+                        <button onclick="closeProcessModal()"
+                            class="text-gh-text-secondary hover:text-gh-text transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Process List Content -->
+                    <div class="flex-1 p-6 overflow-y-auto github-scrollbar">
+                        <div id="processListContent">
+                            <div class="text-gh-text-secondary">Loading process list...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- File Explorer Modal -->
+        <div id="fileExplorerModal" class="fixed inset-0 bg-black/80 hidden z-50">
+            <div class="flex items-center justify-center min-h-screen p-4">
+                <div
+                    class="bg-gh-bg-secondary border border-gh-border rounded-lg w-full max-w-5xl max-h-[85vh] flex flex-col">
+                    <!-- Modal Header -->
+                    <div class="flex items-center justify-between p-6 border-b border-gh-border">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-cyan-900 rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-cyan-300" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z">
+                                    </path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-gh-text">File Explorer</h3>
+                                <p id="fileExplorerClientName" class="text-gh-text-secondary text-sm">Client: Unknown
+                                </p>
+                            </div>
+                        </div>
+                        <button onclick="closeFileExplorer()"
+                            class="text-gh-text-secondary hover:text-gh-text transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Path Bar -->
+                    <div class="p-4 border-b border-gh-border">
+                        <div class="flex items-center space-x-2">
+                            <input id="filePath" type="text" value="C:\\"
+                                class="flex-1 bg-gh-bg-tertiary border border-gh-border rounded-lg px-4 py-2 text-gh-text focus:outline-none focus:ring-2 focus:ring-cyan-500 font-mono text-sm">
+                            <button onclick="browseDirectory()"
+                                class="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg font-semibold text-sm">
+                                Go
+                            </button>
+                            <input type="file" id="uploadFileInput" class="hidden" onchange="handleFileUpload()">
+                            <button onclick="document.getElementById('uploadFileInput').click()"
+                                class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-semibold text-sm">
+                                Upload
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- File List -->
+                    <div class="flex-1 p-4 overflow-y-auto github-scrollbar">
+                        <div id="fileList" class="space-y-1">
+                            <div class="text-gh-text-secondary text-center py-8">Enter a path and click Go to browse
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div> <!-- End Main Content -->
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="fixed inset-0 bg-gh-bg z-50 flex items-center justify-center">
+        <div class="w-full max-w-md mx-4">
+            <!-- Login Card -->
+            <div id="loginForm" class="bg-gh-bg-secondary rounded-lg p-8 border border-gh-border">
+                <!-- Header -->
+                <div class="text-center mb-8">
+                    <div class="w-20 h-20 bg-purple-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+                            </path>
+                        </svg>
+                    </div>
+                    <h1 class="text-3xl font-bold text-gh-text mb-2">Welcome Back</h1>
+                    <p class="text-gh-text-secondary">Sign in to Remote Windows Manager</p>
+                </div>
+
+                <!-- Login Form -->
+                <div class="space-y-6">
+                    <!-- Username Field -->
+                    <div class="space-y-2">
+                        <label for="loginUsername" class="block text-sm font-semibold text-gh-text">Username</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="w-5 h-5 text-gh-text-muted" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                            </div>
+                            <input id="loginUsername" type="text" placeholder="Enter your username"
+                                class="w-full pl-10 pr-4 py-3 bg-gh-bg-tertiary border border-gh-border rounded-lg text-gh-text placeholder-gh-text-muted focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                onkeypress="handleLoginKeyPress(event)">
+                        </div>
+                    </div>
+
+                    <!-- Password Field -->
+                    <div class="space-y-2">
+                        <label for="loginPassword" class="block text-sm font-semibold text-gh-text">Password</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="w-5 h-5 text-gh-text-muted" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+                                    </path>
+                                </svg>
+                            </div>
+                            <input id="loginPassword" type="password" placeholder="Enter your password"
+                                class="w-full pl-10 pr-4 py-3 bg-gh-bg-tertiary border border-gh-border rounded-lg text-gh-text placeholder-gh-text-muted focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                onkeypress="handleLoginKeyPress(event)">
+                        </div>
+                    </div>
+
+                    <!-- Remember Me Checkbox -->
+                    <div class="flex items-center">
+                        <input id="rememberMe" type="checkbox"
+                            class="w-4 h-4 text-purple-600 bg-gh-bg-tertiary border-gh-border rounded focus:ring-purple-500 focus:ring-2">
+                        <label for="rememberMe" class="ml-2 text-sm text-gh-text-secondary">
+                            Remember me for 30 days
+                        </label>
+                    </div>
+
+                    <!-- Error Message -->
+                    <div id="loginError"
+                        class="hidden bg-red-900 border border-red-700 rounded-lg p-3 text-red-200 text-sm flex items-center space-x-2">
+                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span>Invalid username or password</span>
+                    </div>
+
+                    <!-- Login Button -->
+                    <button id="loginBtn" onclick="login()"
+                        class="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 flex items-center justify-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1">
+                            </path>
+                        </svg>
+                        Sign In
+                    </button>
+                </div>
+
+                <!-- Footer -->
+                <div class="mt-8 text-center">
+                    <p class="text-gh-text-muted text-sm">🔒 Secure access to Windows Manager</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Developer Credits -->
+    <footer class="bg-gh-bg-secondary border-t border-gh-border mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex flex-col sm:flex-row items-center justify-between">
+                <div class="flex items-center space-x-3 mb-4 sm:mb-0">
+                    <div class="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-sm">K</span>
+                    </div>
+                    <div>
+                        <p class="text-gh-text font-semibold">Developed by Yadav Ji - Rao Sahab</p>
+                        <p class="text-gh-text-secondary text-sm">Made in India 🇮🇳</p>
+                    </div>
+                </div>
+                <div class="text-gh-text-muted text-sm">
+                    <p>Remote Windows Manager v3.3.3</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://back-server-z01e.onrender.com/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
